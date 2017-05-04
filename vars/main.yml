@@ -1,0 +1,10 @@
+---
+timezone: "Asia/Tokyo"
+databases:
+  - dbname: "wpdb"
+    dbuser: "wpadmin"
+apache_vhosts:
+  - servername: "localhost"
+    documentroot: "/var/www/html"
+    logdir: "/var/log/httpd/localhost"
+apache_vhosts_ssl: []

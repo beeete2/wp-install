@@ -1,0 +1,20 @@
+---
+- block:
+  - name: download to wordpress
+    get_url:
+      url: "{{ wp_wordpress_url }}"
+      dest: /usr/local/src/wordpress.tar.gz
+  - name: unarchive to wordpress
+    unarchive:
+      src: /usr/local/src/wordpress.tar.gz
+      dest: "{{ wp_install_dir }}"
+      remote_src: True
+      creates: "{{ wp_install_dir }}/wordpress"
+  - name: change to ownership
+    file:
+      path: "{{ wp_install_dir }}"
+      owner: "{{ wp_dir_owner }}"
+      group: "{{ wp_dir_group }}"
+      recurse: yes
+  tags:
+    - wordpress

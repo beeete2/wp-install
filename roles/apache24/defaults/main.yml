@@ -1,0 +1,4 @@
+---
+server_name: localhost
+apache_allow_override: "NONE"
+apache_options: "-Indexes +FollowSymLinks"

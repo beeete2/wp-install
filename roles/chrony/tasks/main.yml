@@ -1,0 +1,31 @@
+---
+- block:
+  - name: Installing packages
+    yum: name={{ item }} state=present
+    with_items:
+      - chrony
+
+  - name: Enable service chronyd
+    systemd:
+      name: chronyd
+      enabled: yes
+      state: started
+
+  - name: Dsiable default time servers from chrony.conf
+    replace:
+      dest: /etc/chrony.conf
+      regexp: '^(server \d+.centos.pool.ntp.org iburst)'
+      replace: '# \1'
+    notify: restart chronyd
+
+  - name: Add time servers to chrony.conf
+    lineinfile:
+      dest: /etc/chrony.conf
+      regexp: '^server {{ item }}'
+      line: 'server {{ item }} iburst'
+      state: present
+    with_items:
+      '{{ pf_ntp_servers }}'
+    notify: restart chronyd
+  tags:
+    - chrony

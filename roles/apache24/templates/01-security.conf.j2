@@ -1,0 +1,6 @@
+TraceEnable off
+Header append X-FRAME-OPTIONS "SAMEORIGIN"
+ServerTokens ProductOnly
+Header set X-XSS-Protection "1; mode=block"
+Header set X-Content-Type-Options nosniff
+AddDefaultCharset Off

@@ -1,0 +1,10 @@
+- hosts: wordpress
+  vars_files:
+    - vars/main.yml
+    - vars/private.yml
+  roles:
+    - pf
+    - chrony
+    - apache24
+    - mariadb
+    - php7

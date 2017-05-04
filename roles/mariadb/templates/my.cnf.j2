@@ -1,0 +1,36 @@
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+# Disabling symbolic-links is recommended to prevent assorted security risks
+symbolic-links=0
+# Settings user and group are ignored when systemd is used.
+# If you need to run mysqld under a different user or group,
+# customize your systemd unit file for mariadb according to the
+# instructions in http://fedoraproject.org/wiki/Systemd
+
+# Grobal memory settings
+thread_cache_size={{ mariadb_thread_cache_size | default('8') }}
+query_cache_limit={{ mariadb_query_cache_limit | default('64M') }}
+query_cache_size={{ mariadb_query_cache_size | default('2M') }}
+query_cache_type={{ mariadb_query_cache_type | default('1') }}
+
+# InnoDB settings
+innodb_file_per_table={{ mariadb_innodb_file_per_table | default('1') }}
+innodb_buffer_pool_size={{ mariadb_innodb_buffer_pool_size | default('512M') }}
+innodb_log_file_size={{ mariadb_innodb_log_file_size | default('128M') }}
+
+# Slow query log settings
+{% if mariadb_slow_query_log_enabled %}
+slow_query_log=1
+slow_query_log_file={{ mariadb_slow_query_log_file }}
+long_query_time={{ mariadb_slow_query_time }}
+{% endif %}
+
+[mysqld_safe]
+log-error=/var/log/mariadb/mariadb.log
+pid-file=/var/run/mariadb/mariadb.pid
+
+#
+# include all files from the config directory
+#
+!includedir /etc/my.cnf.d

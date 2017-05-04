@@ -1,0 +1,116 @@
+---
+- block:
+  - name: Installing MariaDB
+    yum: name={{ item }} state=installed
+    with_items:
+      - mariadb-server
+      - MySQL-python
+  - name: Create slow query log file
+    command: "touch {{ mariadb_slow_query_log_file }}"
+    args:
+      creates: "{{ mariadb_slow_query_log_file }}"
+      warn: false
+    when: mariadb_slow_query_log_enabled
+    register: created_slow_log
+  - name: Set owner on slow query log file
+    file:
+      path: "{{ mariadb_slow_query_log_file }}"
+      state: file
+      owner: mysql
+      group: mysql
+      mode: 0640
+    when: created_slow_log.changed
+  - name: MariaDB configuration
+    template:
+      src: my.cnf.j2
+      dest: /etc/my.cnf
+      owner: root
+      group: root
+      mode: 0644
+  - name: Enable service MariaDB
+    systemd:
+      name: mariadb
+      enabled: yes
+      state: started
+  - name: Check if MariaDB root password is empty
+    shell: 'mysqladmin ping -u root --password="" 2> /tmp/ansible_mariadb.log'
+    changed_when: False
+  - name: Read logging result
+    shell: cat /tmp/ansible_mariadb.log | wc -l
+    changed_when: False
+    register: root_password_is_empty
+  - name: Remove logging result file
+    file:
+      path: /tmp/ansible_mariadb.log
+      state: absent
+    changed_when: False
+  - block:
+    - name: Update MySQL default root password
+      mysql_user:
+        password: "{{ mariadb_root_password }}"
+        name: root
+        host: localhost
+        login_user: root
+        login_password: ""
+    - name: Add root user credential file(if root password was empty)
+      template:
+        src: root_my.cnf.j2
+        dest: "{{ mariadb_root_credentials_file }}"
+        owner: root
+        group: root
+        mode: 0600
+    when: root_password_is_empty.stdout == "0"
+  - name: Read MariaDB root password
+    shell: cat "{{ mariadb_root_credentials_file }}" | grep -E '^password=' | sed -e 's/password="\(.*\)"/\1/'
+    register: login_password
+    changed_when: False
+  - name: Delete all anonymous users
+    mysql_user:
+      name: ''
+      host_all: yes
+      state: absent
+      login_user: root
+      login_password: "{{ login_password.stdout }}"
+  - name: Delete all test databases
+    mysql_db:
+      name: "{{ item }}"
+      state: absent
+      login_user: root
+      login_password: "{{ login_password.stdout }}"
+    with_items:
+      - test
+  - name: Create databases
+    mysql_db:
+      name: "{{ item.dbname }}"
+      state: present
+      encoding: utf8
+      login_user: root
+      login_password: "{{ login_password.stdout }}"
+    with_items:
+      "{{ databases }}"
+  - name: Create database users
+    mysql_user:
+      name: "{{ item.dbuser }}"
+      password: "{{ item.dbpassword | default(mariadb_default_user_password) }}"
+      priv: "{{ item.dbname }}.*:ALL"
+      state: present
+      login_user: root
+      login_password: "{{ login_password.stdout }}"
+    with_items:
+      "{{ databases }}"
+  - name: Update MySQL root password
+    mysql_user:
+      name: root
+      host_all: yes
+      password: "{{ mariadb_root_password }}"
+      login_user: root
+      login_password: "{{ login_password.stdout }}"
+  - name: Add root user credential file
+    template:
+      src: root_my.cnf.j2
+      dest: "{{ mariadb_root_credentials_file }}"
+      owner: root
+      group: root
+      mode: 0600
+  tags:
+    - mariadb

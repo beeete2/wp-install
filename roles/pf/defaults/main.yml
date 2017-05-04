@@ -1,0 +1,6 @@
+---
+pf_timezone: "{{ timezone }}"
+pf_selinux_state: permissive
+pf_local: ja_JP.utf8
+pf_install_packages:
+  - vim

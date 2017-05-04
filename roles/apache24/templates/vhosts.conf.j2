@@ -1,0 +1,65 @@
+{% for vhost in apache_vhosts %}
+<VirtualHost *:80>
+  ServerName   {{ vhost.servername }}
+{% if vhost.serveralias is defined %}
+  ServerAlias  {{ vhost.serveralias }}
+{% endif %}
+{% if vhost.documentroot is defined %}
+  DocumentRoot {{ vhost.documentroot }}
+{% endif %}
+
+  ErrorLog  {{ vhost.logdir }}/error_log
+  CustomLog {{ vhost.logdir }}/access_log combined
+  CustomLog {{ vhost.logdir }}/ltsv_access_log apache_ltsv
+
+{% if vhost.documentroot is defined %}
+  <Directory "{{ vhost.documentroot }}">
+    Options {{ vhost.options | default(apache_options) }}
+    AllowOverride {{ vhost.allow_override | default(apache_allow_override) }}
+    Require all granted
+  </Directory>
+{% endif %}
+
+{% if vhost.extra_parameters is defined %}
+    {{ vhost.extra_parameters }}
+{% endif %}
+</VirtualHost>
+{% endfor %}
+
+{% for vhost in apache_vhosts_ssl %}
+<VirtualHost *:443>
+  ServerName {{ vhost.servername }}
+{% if vhost.serveralias is defined %}
+  ServerAlias {{ vhost.serveralias }}
+{% endif %}
+{% if vhost.documentroot is defined %}
+  DocumentRoot {{ vhost.documentroot }}
+{% endif %}
+
+SSLEngine on
+SSLCipherSuite {{ apache_ssl_cipher_suite }}
+SSLProtocol {{ apache_ssl_protocol }}
+SSLHonorCipherOrder On
+
+SSLCertificateFile {{ vhost.certificate_file }}
+SSLCertificateKeyFile {{ vhost.certificate_key_file }}
+{% if vhost.certificate_chain_file is defined %}
+SSLCertificateChainFile {{ vhost.certificate_chain_file }}
+{% endif %}
+
+ErrorLog  {{ vhost.logdir }}/ssl_error_log
+CustomLog {{ vhost.logdir }}/ssl_access_log combined
+CustomLog {{ vhost.logdir }}/ssl_ltsv_access_log apache_ltsv
+
+{% if vhost.documentroot is defined %}
+  <Directory "{{ vhost.documentroot }}">
+    AllowOverride {{ vhost.allow_override | default(apache_allow_override) }}
+    Options {{ vhost.options | default(apache_options) }}
+    Require all granted
+  </Directory>
+{% endif %}
+{% if vhost.extra_parameters is defined %}
+   {{ vhost.extra_parameters }}
+{% endif %}
+</VirtualHost>
+{% endfor %}

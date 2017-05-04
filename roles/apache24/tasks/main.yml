@@ -1,0 +1,77 @@
+---
+- block:
+  - name: Installing Apache 2.4
+    yum: name={{ item }} state=installed
+    with_items:
+      - httpd
+      - mod_ssl
+  - name: Configure to httpd.conf
+    lineinfile:
+      dest: "/etc/httpd/conf/httpd.conf"
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: present
+    with_items:
+      - regexp: "#ServerName www\\.(.*)|ServerName {{ server_name }}:80"
+        line: "ServerName {{ server_name }}:80"
+      - regexp: "^AddDefaultCharset .+"
+        line: "AddDefaultCharset Off"
+    notify: restart apache
+  - name: Configure to conf.d files
+    shell: |
+      mv /etc/httpd/conf.d/{{ item }} /etc/httpd/conf.d/{{ item }}.orig
+      touch /etc/httpd/conf.d/{{ item }}
+    args:
+      creates: "/etc/httpd/conf.d/{{ item }}.orig"
+      warn: false
+    with_items:
+      - welcome.conf
+      - autoindex.conf
+    notify: restart apache
+  - name: Add Apache configuration files.
+    template:
+      src: "{{ item.src }}"
+      dest: "/etc/httpd/conf.d/{{ item.dest }}"
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - src: vhosts.conf.j2
+        dest: vhosts.conf
+      - src: 00-base.conf.j2
+        dest: 00-base.conf
+      - src: 01-security.conf.j2
+        dest: 01-security.conf
+    notify: restart apache
+  - name: Check contains VirtualHost Tag in ssl.conf
+    shell: cat /etc/httpd/conf.d/ssl.conf | grep VirtualHost | wc -l
+    register: has_virtualhost
+    changed_when: False
+  - name: Delete VirtualHost Tag in ssl.conf
+    command: perl -0777 -i -p -e 's|^(.*)<VirtualHost.*?</VirtualHost>(.*)$|$1$3|s' /etc/httpd/conf.d/ssl.conf
+    when: has_virtualhost.stdout != "0"
+  - name: Create vhosts documentroot directories
+    file:
+      path: "{{ item.documentroot }}"
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+    with_items:
+      "{{ apache_vhosts }}"
+  - name: Create vhosts log directories
+    file:
+      path: "{{ item.logdir }}"
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+    with_items:
+      "{{ apache_vhosts }}"
+  - name: Enable service httpd
+    systemd:
+      name: httpd
+      enabled: yes
+      state: started
+  tags:
+    - apache24

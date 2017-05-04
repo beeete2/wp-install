@@ -1,0 +1,5 @@
+---
+wp_wordpress_url: https://ja.wordpress.org/latest-ja.tar.gz
+wp_install_dir: /var/www/html
+wp_dir_owner: "apache"
+wp_dir_group: "apache"

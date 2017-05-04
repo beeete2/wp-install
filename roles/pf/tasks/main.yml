@@ -1,0 +1,20 @@
+---
+- block:
+  - name: Installing packages
+    yum: name={{ item }} state=present
+    with_items:
+      "{{ pf_install_packages }}"
+  - name: Set timezone
+    timezone:
+      name: "{{ pf_timezone }}"
+  - name: Set locale
+    lineinfile:
+      dest: "/etc/locale.conf"
+      regexp: '^LANG=".*"'
+      line: 'LANG="{{ pf_local }}"'
+  - name: Set selinux
+    selinux:
+      policy: targeted
+      state: "{{ pf_selinux_state }}"
+  tags:
+    - pf

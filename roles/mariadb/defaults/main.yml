@@ -1,0 +1,5 @@
+---
+mariadb_slow_query_log_file: "/var/log/mariadb/slow.log"
+mariadb_slow_query_log_enabled: True
+mariadb_slow_query_time: 3
+mariadb_root_credentials_file: "/root/.my.cnf"
